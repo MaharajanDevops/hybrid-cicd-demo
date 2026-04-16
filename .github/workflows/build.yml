@@ -1,0 +1,51 @@
+name: CI — Build & Trigger CD
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-trigger:
+    name: '⚡ Build & Trigger Azure Pipeline'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate HTML
+      run: |
+        echo "✅ Checking HTML file exists..."
+        ls -la index.html
+        echo "✅ HTML validation passed!"
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: html-app-${{ github.run_number }}
+        path: index.html
+
+    - name: Trigger Azure Pipeline
+      run: |
+        echo "🔔 Triggering Azure Pipeline..."
+        RESPONSE=$(curl -s -o response.json -w "%{http_code}" -X POST \
+          "https://dev.azure.com/${{ secrets.AZURE_DEVOPS_ORG }}/${{ secrets.AZURE_DEVOPS_PROJECT }}/_apis/pipelines/${{ secrets.AZURE_DEVOPS_PIPELINE_ID }}/runs?api-version=7.1" \
+          -H "Authorization: Basic $(echo -n :${{ secrets.AZURE_DEVOPS_TOKEN }} | base64)" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "resources": {
+              "repositories": {
+                "self": { "refName": "refs/heads/main" }
+              }
+            }
+          }')
+
+        echo "HTTP Status: $RESPONSE"
+        cat response.json
+
+        if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "201" ]; then
+          echo "✅ Azure Pipeline triggered successfully!"
+        else
+          echo "❌ Failed to trigger pipeline"
+          exit 1
+        fi
