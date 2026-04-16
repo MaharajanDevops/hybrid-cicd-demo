@@ -41,8 +41,8 @@ jobs:
         # Build auth header
         B64_PAT=$(printf ":%s" "$AZURE_DEVOPS_TOKEN" | base64 -w 0)
 
-        # Call the API
-        HTTP_CODE=$(curl -s -w "\n%{http_code}" -o response.json -X POST "$API_URL" \
+        # Call the API — -o and -w at the end (correct order)
+        HTTP_CODE=$(curl -s -X POST "$API_URL" \
           -H "Authorization: Basic $B64_PAT" \
           -H "Content-Type: application/json" \
           -d '{
@@ -53,7 +53,9 @@ jobs:
                 }
               }
             }
-          }')
+          }' \
+          -o response.json \
+          -w "%{http_code}")
 
         echo "Response Body:"
         cat response.json
