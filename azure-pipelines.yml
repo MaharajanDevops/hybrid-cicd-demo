@@ -1,31 +1,29 @@
-# azure-pipelines.yml
-trigger: none   # GitHub Actions will trigger this via REST API
+# azure-pipelines.yml  — only the pool lines change
+trigger: none
 
 pool:
-  vmImage: 'windows-latest'
+  name: MyLocalAgent          # ← changed
 
 variables:
-  stagingApp: 'app-cicd-staging-maharajan'   # ← your staging app name
-  prodApp:    'app-cicd-prod-maharajan'       # ← your prod app name
+  stagingApp: 'app-cicd-staging-maharajan'
+  prodApp:    'app-cicd-prod-maharajan'
   serviceConn: 'Azure-Service-Connection'
 
 stages:
 
-# ─────────────────────────────────────────
-# STAGE 1 — Deploy to Staging (automatic)
-# ─────────────────────────────────────────
 - stage: DeployStaging
   displayName: '🌍 Deploy to Staging'
   jobs:
   - deployment: DeployStaging
     displayName: 'Deploy HTML to Staging'
     environment: 'staging'
+    pool:
+      name: MyLocalAgent      # ← changed
     strategy:
       runOnce:
         deploy:
           steps:
           - checkout: self
-
           - task: AzureWebApp@1
             displayName: 'Deploy to Staging App Service'
             inputs:
@@ -34,22 +32,20 @@ stages:
               appName: $(stagingApp)
               package: '$(System.DefaultWorkingDirectory)'
 
-# ─────────────────────────────────────────
-# STAGE 2 — Deploy to Prod (needs approval)
-# ─────────────────────────────────────────
 - stage: DeployProd
   displayName: '🚀 Deploy to Production'
   dependsOn: DeployStaging
   jobs:
   - deployment: DeployProd
     displayName: 'Deploy HTML to Production'
-    environment: 'production'        # ← approval gate set on this environment
+    environment: 'production'
+    pool:
+      name: MyLocalAgent      # ← changed
     strategy:
       runOnce:
         deploy:
           steps:
           - checkout: self
-
           - task: AzureWebApp@1
             displayName: 'Deploy to Production App Service'
             inputs:
