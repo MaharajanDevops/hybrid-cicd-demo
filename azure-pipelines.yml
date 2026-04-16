@@ -1,0 +1,59 @@
+# azure-pipelines.yml
+trigger: none   # GitHub Actions will trigger this via REST API
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  stagingApp: 'app-cicd-staging-maharajan'   # ← your staging app name
+  prodApp:    'app-cicd-prod-maharajan'       # ← your prod app name
+  serviceConn: 'Azure-Service-Connection'
+
+stages:
+
+# ─────────────────────────────────────────
+# STAGE 1 — Deploy to Staging (automatic)
+# ─────────────────────────────────────────
+- stage: DeployStaging
+  displayName: '🌍 Deploy to Staging'
+  jobs:
+  - deployment: DeployStaging
+    displayName: 'Deploy HTML to Staging'
+    environment: 'staging'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+
+          - task: AzureWebApp@1
+            displayName: 'Deploy to Staging App Service'
+            inputs:
+              azureSubscription: $(serviceConn)
+              appType: 'webApp'
+              appName: $(stagingApp)
+              package: '$(System.DefaultWorkingDirectory)'
+
+# ─────────────────────────────────────────
+# STAGE 2 — Deploy to Prod (needs approval)
+# ─────────────────────────────────────────
+- stage: DeployProd
+  displayName: '🚀 Deploy to Production'
+  dependsOn: DeployStaging
+  jobs:
+  - deployment: DeployProd
+    displayName: 'Deploy HTML to Production'
+    environment: 'production'        # ← approval gate set on this environment
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+
+          - task: AzureWebApp@1
+            displayName: 'Deploy to Production App Service'
+            inputs:
+              azureSubscription: $(serviceConn)
+              appType: 'webApp'
+              appName: $(prodApp)
+              package: '$(System.DefaultWorkingDirectory)'
