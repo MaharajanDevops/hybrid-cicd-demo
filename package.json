@@ -4,7 +4,7 @@
   "description": "Hybrid CI/CD Demo - Azure with Maharajan",
   "main": "index.html",
   "dependencies": {
-    "axios": "0.21.1",
+    "axios": "1.15.1",
     "lodash": "4.17.20",
     "express": "4.17.1"
   }
